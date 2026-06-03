@@ -13,9 +13,11 @@ class AboutPage extends StatelessWidget {
         backgroundColor: isDarkTheme ? Colors.grey[850] : Colors.grey[900],
       ),
       backgroundColor: isDarkTheme ? Colors.grey[800] : Colors.white,
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
+      body: SingleChildScrollView(
+        physics: const ClampingScrollPhysics(),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
@@ -77,6 +79,7 @@ class AboutPage extends StatelessWidget {
           ],
         ),
       ),
+    ),
     );
   }
 }

@@ -17,6 +17,7 @@ class BookmarkDetailPage extends StatelessWidget {
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: SingleChildScrollView(
+          physics: const ClampingScrollPhysics(),
           child: Text(
             text,
             style: TextStyle(
