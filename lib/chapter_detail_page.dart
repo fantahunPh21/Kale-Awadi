@@ -89,6 +89,7 @@ class ChapterDetailPage extends StatelessWidget {
         padding: const EdgeInsets.all(16.0),
         color: backgroundColor,
         child: ListView.builder(
+          physics: const ClampingScrollPhysics(),
           itemCount: chapter.articles.length,
           itemBuilder: (context, index) {
             final article = chapter.articles[index];
@@ -161,6 +162,7 @@ class ArticleDetailPage extends StatelessWidget {
         padding: const EdgeInsets.all(16.0),
         color: backgroundColor,
         child: SingleChildScrollView(
+          physics: const ClampingScrollPhysics(),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [

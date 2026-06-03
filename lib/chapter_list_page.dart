@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart'; // For compute
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'; // For rootBundle
 import 'package:shared_preferences/shared_preferences.dart';
@@ -32,13 +33,13 @@ class _ChapterListPageState extends State<ChapterListPage> {
 
   Future<void> loadChapters() async {
     final String response = await rootBundle.loadString('assets/chapters.json');
-    final data = json.decode(response);
+    // Compute the parsing on a background isolate to keep UI smooth
+    final data = await compute(json.decode, response) as Map<String, dynamic>;
 
     setState(() {
       chapters = (data['chapters'] as List)
           .map((chapter) => Chapter.fromJson(chapter))
           .toList();
-      print('Chapters Loaded: $chapters'); // Debugging line
     });
   }
 
@@ -69,15 +70,17 @@ class _ChapterListPageState extends State<ChapterListPage> {
 
   void toggleLanguage() {
     setState(() {
-      isEnglish = !isEnglish; // Toggle between English and Amharic
+      isEnglish = !isEnglish;
     });
   }
 
   void bookmarkText(String text) {
-    setState(() {
-      bookmarks.add(text);
-      savePreferences(); // Save bookmarks after adding
-    });
+    if (!bookmarks.contains(text)) {
+      setState(() {
+        bookmarks.add(text);
+        savePreferences();
+      });
+    }
   }
 
   void deleteBookmark(int index) {
@@ -154,48 +157,61 @@ class _ChapterListPageState extends State<ChapterListPage> {
                 Navigator.pop(context);
                 showDialog(
                   context: context,
-                  builder: (context) => AlertDialog(
-                    title: const Text('Bookmarks',
-                        style: TextStyle(color: Colors.black)),
-                    backgroundColor:
-                        isDarkTheme ? Colors.grey[850] : Colors.white,
-                    content: SizedBox(
-                      width: double.maxFinite,
-                      child: ListView.builder(
-                        itemCount: bookmarks.length,
-                        itemBuilder: (context, index) {
-                          return ListTile(
-                            title: Text(
-                              bookmarks[index],
-                              style: const TextStyle(color: Colors.black),
-                            ),
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => BookmarkDetailPage(
-                                    text: bookmarks[index],
-                                    isDarkTheme: isDarkTheme,
-                                  ),
+                  builder: (context) => StatefulBuilder(
+                    builder: (context, setDialogState) {
+                      return AlertDialog(
+                        title: const Text('Bookmarks',
+                            style: TextStyle(color: Colors.black)),
+                        backgroundColor:
+                            isDarkTheme ? Colors.grey[850] : Colors.white,
+                        content: SizedBox(
+                          width: double.maxFinite,
+                          child: bookmarks.isEmpty
+                              ? const Center(child: Text("No bookmarks yet"))
+                              : ListView.builder(
+                                  shrinkWrap: true,
+                                  itemCount: bookmarks.length,
+                                  itemBuilder: (context, index) {
+                                    return ListTile(
+                                      title: Text(
+                                        bookmarks[index],
+                                        style: const TextStyle(color: Colors.black),
+                                      ),
+                                      onTap: () {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) =>
+                                                BookmarkDetailPage(
+                                              text: bookmarks[index],
+                                              isDarkTheme: isDarkTheme,
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                      trailing: IconButton(
+                                        icon: const Icon(Icons.delete,
+                                            color: Colors.red),
+                                        onPressed: () {
+                                          setState(() {
+                                            bookmarks.removeAt(index);
+                                          });
+                                          setDialogState(() {});
+                                          savePreferences();
+                                        },
+                                      ),
+                                    );
+                                  },
                                 ),
-                              );
-                            },
-                            trailing: IconButton(
-                              icon: const Icon(Icons.delete, color: Colors.red),
-                              onPressed: () {
-                                deleteBookmark(index);
-                              },
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                    actions: [
-                      TextButton(
-                        child: const Text('Close'),
-                        onPressed: () => Navigator.of(context).pop(),
-                      ),
-                    ],
+                        ),
+                        actions: [
+                          TextButton(
+                            child: const Text('Close'),
+                            onPressed: () => Navigator.of(context).pop(),
+                          ),
+                        ],
+                      );
+                    },
                   ),
                 );
               },
@@ -331,6 +347,7 @@ class _ChapterListPageState extends State<ChapterListPage> {
             child: Container(
               color: backgroundColor,
               child: ListView.builder(
+                physics: const ClampingScrollPhysics(),
                 itemCount: filteredChapters.length,
                 itemBuilder: (context, index) {
                   print(
